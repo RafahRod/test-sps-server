@@ -1,91 +1,196 @@
-class UsersDatabase {
-  constructor() {
-    this.users = [
-      {
-        id: 1,
-        name: "admin",
-        email: "admin@sps.com",
-        type: "admin",
-        password: "admin123"
-      }
-    ];
-    this.nextId = 2;
-  }
+const { db } = require('./sqlite');
 
-  getAllUsers() {
-    return this.users.map(user => {
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
+async function getAllUsers() {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM users ORDER BY created_at DESC';
+    db.all(query, [], (err, rows) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(rows);
+      }
     });
-  }
-
-  getUserById(id) {
-    return this.users.find(user => user.id === id);
-  }
-
-  getUserByEmail(email) {
-    return this.users.find(user => user.email === email);
-  }
-
-  createUser(userData) {
-    const existingUser = this.getUserByEmail(userData.email);
-    if (existingUser) {
-      throw new Error('Email already exists');
-    }
-
-    const newUser = {
-      id: this.nextId++,
-      ...userData
-    };
-
-    this.users.push(newUser);
-    return newUser;
-  }
-
-  updateUser(id, userData) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) {
-      throw new Error('User not found');
-    }
-
-    if (userData.email && userData.email !== this.users[userIndex].email) {
-      const existingUser = this.getUserByEmail(userData.email);
-      if (existingUser) {
-        throw new Error('Email already exists');
-      }
-    }
-
-    this.users[userIndex] = {
-      ...this.users[userIndex],
-      ...userData
-    };
-
-    return this.users[userIndex];
-  }
-
-  deleteUser(id) {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) {
-      throw new Error('User not found');
-    }
-
-    if (this.users[userIndex].type === 'admin') {
-      throw new Error('Cannot delete admin user');
-    }
-
-    const deletedUser = this.users.splice(userIndex, 1)[0];
-    return deletedUser;
-  }
-
-  authenticateUser(email, password) {
-    const user = this.getUserByEmail(email);
-    if (!user || user.password !== password) {
-      return null;
-    }
-    return user;
-  }
+  });
 }
 
-const usersDB = new UsersDatabase();
+async function getUserById(id) {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM users WHERE id = ?';
+    db.get(query, [id], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
 
-module.exports = usersDB;
+async function getUserByEmail(email) {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM users WHERE email = ?';
+    db.get(query, [email], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+async function createUser(userData) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { name, email, type, password } = userData;
+      
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
+        reject(new Error('Email already exists'));
+        return;
+      }
+
+      const query = `
+        INSERT INTO users (name, email, type, password) 
+        VALUES (?, ?, ?, ?)
+      `;
+      
+      db.run(query, [name, email, type, password], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          const newUser = {
+            id: this.lastID,
+            name,
+            email,
+            type,
+            password,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          resolve(newUser);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function updateUser(id, userData) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const { name, email, type, password } = userData;
+      
+      const existingUser = await getUserById(id);
+      if (!existingUser) {
+        reject(new Error('User not found'));
+        return;
+      }
+
+      if (email && email !== existingUser.email) {
+        const emailExists = await getUserByEmail(email);
+        if (emailExists) {
+          reject(new Error('Email already exists'));
+          return;
+        }
+      }
+
+      const updateFields = [];
+      const values = [];
+      
+      if (name !== undefined) {
+        updateFields.push('name = ?');
+        values.push(name);
+      }
+      if (email !== undefined) {
+        updateFields.push('email = ?');
+        values.push(email);
+      }
+      if (type !== undefined) {
+        updateFields.push('type = ?');
+        values.push(type);
+      }
+      if (password !== undefined) {
+        updateFields.push('password = ?');
+        values.push(password);
+      }
+      
+      updateFields.push('updated_at = ?');
+      values.push(new Date().toISOString());
+      values.push(id);
+
+      const query = `
+        UPDATE users 
+        SET ${updateFields.join(', ')} 
+        WHERE id = ?
+      `;
+
+      db.run(query, values, function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          const updatedUser = {
+            ...existingUser,
+            ...userData,
+            updated_at: new Date().toISOString()
+          };
+          resolve(updatedUser);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function deleteUser(id) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const existingUser = await getUserById(id);
+      if (!existingUser) {
+        reject(new Error('User not found'));
+        return;
+      }
+
+      if (existingUser.type === 'admin') {
+        reject(new Error('Cannot delete admin user'));
+        return;
+      }
+
+      const query = 'DELETE FROM users WHERE id = ?';
+      db.run(query, [id], function(err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(existingUser);
+        }
+      });
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function authenticateUser(email, password) {
+  return new Promise((resolve, reject) => {
+    const query = 'SELECT * FROM users WHERE email = ? AND password = ?';
+    db.get(query, [email, password], (err, row) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(row);
+      }
+    });
+  });
+}
+
+module.exports = {
+  getAllUsers,
+  getUserById,
+  getUserByEmail,
+  createUser,
+  updateUser,
+  deleteUser,
+  authenticateUser
+};
