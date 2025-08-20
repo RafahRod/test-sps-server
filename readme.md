@@ -1,52 +1,64 @@
-----------------------------------
-ESPANHOL
-----------------------------------
+# Test SPS Server
 
-## Prueba NODE
+Servidor Node.js/Express para gerenciamento de usuários com sistema de logs.
 
-- Crear un CRUD (API REST) en Node para el registro de usuarios.
-- Para la creación de la prueba, utilizar un repositorio falso de usuarios (puede ser en memoria).
+## Pré-requisitos
 
-## Reglas
+- Node.js (versão 14 ou superior)
+- npm
 
-- Debe existir un usuario administrador previamente registrado para utilizar la autenticación (no es necesario cifrar la contraseña):
-{
-  "name": "admin",
-  "email": "admin@spsgroup.com.br",
-  "type": "admin",
-  "password": "1234"
-}
+## Instalação e Execução
 
-- Crear una ruta de autenticación (token Jwt).
-- Las rutas de la API solo pueden ser ejecutadas si el usuario está autenticado.
-- Debe ser posible añadir usuarios con los campos: email, nombre, type, password.
-- No debe ser posible registrar un correo electrónico ya existente.
-- Debe ser posible eliminar usuarios.
-- Debe ser posible modificar los datos de un usuario.
+### 1. Instale as dependências:
+```bash
+npm install
+```
 
+### 2. Configure as variáveis de ambiente:
+Crie um arquivo `.env` na raiz do projeto com:
+```env
+PORT=3001
+JWT_SECRET=sua-chave-secreta-aqui
+JWT_EXPIRES_IN=24h
+```
 
-----------------------------------
-PORTUGUÊS
-----------------------------------
+### 3. Execute o servidor:
+```bash
+npm run dev
+```
 
-# Teste NODE
+O backend estará disponível em `http://localhost:3001`
 
-- Criar um CRUD (API REST) em node para cadastro de usuários
-- Para a criação do teste utilizar um repositório fake dos usuários. (Pode ser em memória)
+## Funcionalidades
 
-## Regras
+- **Autenticação JWT** para todas as rotas protegidas
+- **CRUD completo** de usuários (criar, editar, excluir, listar)
+- **Sistema de logs** para todas as operações
+- **Banco SQLite** com tabelas automáticas
+- **Validações** de dados e tipos de usuário
 
-- Deve existir um usuário admin previamente cadastrado para utilizar autenticação (não precisa criptografar a senha);
-  {
-    name: "admin",
-    email: "admin@spsgroup.com.br",
-    type: "admin"
-    password: "1234"
-  }
+## Rotas da API
 
-- Criar rota de autenticação (Jwt token)
-- As rotas da API só podem ser executadas se estiver autenticada
-- Deve ser possível adicionar usuários. Campos: email, nome, type, password
-- Não deve ser possível cadastrar o e-mail já cadastrado
-- Deve ser possível remover usuário
-- Deve ser possível alterar os dados do usuário
+- `POST /auth/login` - Autenticação de usuários
+- `GET /users` - Listar todos os usuários
+- `POST /users` - Criar novo usuário
+- `PUT /users/:id` - Editar usuário existente
+- `DELETE /users/:id` - Excluir usuário
+- `GET /logs` - Histórico de operações
+
+## Usuário Padrão
+
+- **Email**: admin@sps.com
+- **Senha**: admin123
+- **Tipo**: admin
+
+## Estrutura do Projeto
+
+```
+src/
+├── config/          # Configurações de ambiente
+├── database/        # Camada de banco de dados
+├── middlewares/     # Validações e autenticação
+├── routes/          # Rotas da API
+└── utils/           # Utilitários
+```
