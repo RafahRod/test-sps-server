@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const authRoutes = require("./auth");
 const usersRoutes = require("./users");
+const logsRoutes = require("./logs");
 
 const routes = Router();
 
@@ -10,12 +11,14 @@ routes.get("/", (req, res) => {
     version: "1.0.0",
     endpoints: {
       auth: "/auth/login",
-      users: "/users"
+      users: "/users",
+      logs: "/logs"
     }
   });
 });
 
 routes.use("/auth", authRoutes);
 routes.use("/users", usersRoutes);
+routes.use("/logs", logsRoutes);
 
 module.exports = routes;
