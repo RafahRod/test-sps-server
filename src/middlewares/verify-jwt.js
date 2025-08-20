@@ -1,7 +1,8 @@
 const jwt = require('jsonwebtoken');
 const config = require('../config/env');
+const usersDB = require('../database/users');
 
-function verifyJWT(req, res, next) {
+async function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -16,7 +17,19 @@ function verifyJWT(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, config.JWT_SECRET);
-    req.user = decoded;
+    
+    const user = await usersDB.getUserById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    
+    req.user = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      type: user.type
+    };
+    
     next();
   } catch (error) {
     return res.status(401).json({ message: 'Invalid token' });

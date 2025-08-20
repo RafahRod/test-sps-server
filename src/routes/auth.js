@@ -5,7 +5,7 @@ const config = require('../config/env');
 
 const authRoutes = Router();
 
-authRoutes.post('/login', (req, res) => {
+authRoutes.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -15,7 +15,7 @@ authRoutes.post('/login', (req, res) => {
       });
     }
 
-    const user = usersDB.authenticateUser(email, password);
+    const user = await usersDB.authenticateUser(email, password);
     
     if (!user) {
       return res.status(401).json({ 
